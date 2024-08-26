@@ -1,0 +1,1428 @@
+---
+title: Modélisation d'une culture de maïs pour démontrer l'impact des traits racinaires
+  sur le rendement en condition de sécheresse
+output:
+  html_document: default
+  pdf_document: default
+date: "2024-08-02"
+---
+
+```{r setup, include=FALSE}
+show_col_types = FALSE 
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE)
+
+```
+
+## LBRAI2219 Modélisation des systèmes biologiques
+*Enseignants* : Couvreur Valentin  Draye Xavier Lobet Guillaume
+
+*Auteur* : De Lievre Théo
+
+Liste des co-auteur.e.s de ce rapport :
+---------------------------
+* **Lison Van Asbrouck** Pour la clarté de la méthodologie suivie et l'utilité certain de son code partagé sur le github pour lier APSIM avec MARSHAL et CROOTBOX
+* **Pierre Huljev** Pour son aide concernant la structure globale de ce projet et les deux trois tips pour faciliter l'utilisation de APSIM  
+
+Table des matières :
+----------------------------------------------------------------
+**1.  Introduction**
+
+**2.  Matériel et méthodes**
+
+    2.1 Modèles utilisés
+    
+            - CROOTBOX
+            - MARSHAL
+            - APSIM
+    
+    2.2 Schéma de modélisation
+    
+    2.3 Packages utilisés
+    
+    2.4 Méthode d'analyse utilisée
+    
+**3.  Résultats**
+
+    3.1 Influence du rayon de la racine primaire sur la biomasse résultante de la culture
+    
+    
+    3.2 Influence de la longueur maximale des racines longues latérales sur la biomasse de la culture
+    
+    
+    3.3 Influence de la distance entre les ramifications sur la biomasse résultante de la culture
+    
+    
+**4.  Conclusion**
+
+    Analyse de l’interaction entre rendements et racines
+    
+    Conclusion générale
+    
+    
+
+    
+**5.  Contributions des auteur.e.s**
+
+**6.  Bibliographie**
+
+
+## Résumé
+
+Ce rapport vise à mettre en avant le lien entre les paramètres architecturaux du système racinaire du maïs et le rendement en biomasse, dans un contexte de sécheresse simulée représentant les conditions estivales belges. L'étude utilise la modélisation pour évaluer l'impact de trois paramètres racinaires (rayon de la racine primaire, longueur maximale des racines latérales, et distance entre les ramifications) sur la conductance globale du système racinaire. Les résultats montrent une forte corrélation entre le rayon de la racine primaire et la conductance, contrairement aux autres paramètres.
+
+Le rapport explore également la tentative de combiner les modèles MARSHAL, CROOTBOX et APSIM via la transpiration des plantes et la conductance hydraulique. Cependant, les valeurs simulées par MARSHAl et CROOTBOX se sont révélées constantes tout au long des simulations (ce qui est sans doute du à une erreur de modélisation) pour être intégrée efficacement dans APSIM, suggérant la nécessité de reprendre en main les différents input et ouput de ces modélisations afin de comprendre et corriger la ou il y a eu un erreur. 
+
+## 1. Introduction
+
+L'impact des changements cliamtiques sur la production agricole n'est plus à négligeret les modèles climatiques actuels tendent également à une intesifications des phénomènes de sécheresses. Bien qu'endiguer le réchauffement climatique reste la priorité il est important d'anticiper les conditions de culture que nous pourrions avoir d'ici peu. 
+
+Pour ce faire la modélisation est un outil essentiel pour déterminer quels seront les cultures de demain. Traditionnellement, la sélection des espèces à cultiver s'est concentrée sur les parties aériennes des plantes, principalement en raison de la difficulté d'observer et de mesurer les systèmes racinaires en temps réel sans endommager les cultures. Pourtant, le système racinaire joue un rôle fondamental dans l'absorption de l'eau et des nutriments, et donc dans la résilience des cultures face aux conditions climatiques extrêmes. Ainsi, il devient impératif de s'intéresser de plus près à l'architecture racinaire et à son impact sur la performance globale des cultures.
+
+La modélisation offre une approche puissante pour étudier ces systèmes racinaires complexes, permettant d'estimer des phénomènes qui ne peuvent être observés directement. En simplifiant des systèmes réels complexes, les modèles nous permettent de simuler et de prédire le comportement des plantes sous différentes conditions environnementales. 
+
+Ce rapport se concentre sur l'étude de la production de biomasse du maïs en fonction de divers paramètres architecturaux du système racinaire, sous des conditions simulées de sécheresse correspondant aux périodes estivales en Belgique. Les modèles CROOTBOX et MARSHAL ont été utilisés pour la modélisation racinaire et le modèle APSIM pour simuler l'évolution de la culture. Les résultats obtenus permettront d'identifier les paramètres racinaires les plus adaptés pour améliorer la résistance du maïs à la sécheresse, contribuant ainsi à des pratiques agricoles plus durables face aux défis climatiques à venir.
+
+## 2. Matériel et méthodes
+
+> Courte description des modèles utilisé, description du schéma de modélisation, description des packages employés et des méthodes d'analyse choisies
+
+### 2.1. Modèles utilisés
+
+Ce projet s'appuie sur l'utilisation de trois modèles principaux : CRootBox, MARSHAL, et APSIM. Les deux premiers modèles jouent un rôle dans la simulation de l'architecture racinaire et des propriétés hydrauliques des systèmes racinaires. Le troisième dans la simulation de l'évolution de la culture de maïs sous conditions de sécheresse.
+
+> *CROOTBOX*
+
+Le premier modèle utilisé est CRootBox, un cadre flexible pour la modélisation de l'architecture racinaire et ses interactions avec l'environnement du sol, qu'il soit statique ou dynamique. Selon Schnepf et al. (2018), "le modèle d'architecture racinaire CRootBox est conçu pour faciliter la modélisation des réponses des racines aux conditions environnementales". En variant divers paramètres architecturaux tels que le rayon des racines, leur longueur, et la distance entre ramifications, CRootBox permet de générer des systèmes racinaires distincts qui seront ensuite étudiés dans les autres modèles utilisés dans ce projet.
+
+> *MARSHAL*
+
+Les architectures racinaires générées par CRootBox sont ensuite importées dans MARSHAL (MAize Root System Hydraulic Architecture soLver), un outil informatique qui associe ces architectures à leurs propriétés hydrauliques. MARSHAL calcule des paramètres tels que la conductance hydraulique globale du système racinaire (Krs) et le Surface Uptake Fraction (SUF), en s'appuyant sur des algorithmes rapides et précis pour modéliser l'écoulement de l'eau à travers les architectures racinaires (Meunier et al., 2020). Ce modèle permet d'intégrer les caractéristiques structurelles des racines avec leurs fonctions hydrauliques, offrant ainsi une vue d'ensemble de la capacité des racines à absorber l'eau dans des conditions variées.
+
+> *APSIM*
+
+Enfin, le modèle APSIM (Agricultural Production Systems sIMulator) est utilisé pour suivre l'évolution de la culture de maïs sur une période donnée. APSIM est un modèle complet qui simule les processus biophysiques dans les systèmes agricoles, intégrant des modules pour les plantes, les sols et la gestion des cultures. Selon APSIM (2024), ce modèle a été développé pour prédire avec précision la production végétale en fonction du climat, du génotype, du sol et des pratiques de gestion. APSIM est particulièrement adapté à ce projet car il permet de suivre l'évolution de la biomasse produite, la demande en eau, et d'autres paramètres essentiels à la gestion des cultures en conditions de sécheresse.
+
+### 2.2. Schéma de modélisation
+Voici une reformulation des étapes décrites :
+
+1) Exécuter CRootBox pour générer diverses architectures racinaires, permettant ainsi d'effectuer des analyses comparatives.
+
+2) Pour chaque architecture, utiliser MARSHAL afin de calculer la conductance hydraulique (KRS).
+
+3) Pour chaque architecture, lancer APSIM, préalablement couplé avec MARSHAL, afin d'évaluer l'évolution de la biomasse.
+
+### 2.3. Packages employés
+
+Les packages employés sont listés dans le code ci-dessous. Ils peuvent être rangés dans 4 catégories, ceux servatn à la visualisation graphique  (ggplot, cowplot), ceux utilisés pour traiter les données (plyr, dplyr, data.table, Matrix ),celui pour faciliter la lecture de ces données (readr) et celui qui permettet d'en englober d'autres (tidyverse).
+
+```{r cars}
+########################################################################
+# 1 : LOAD THE LIBRARIES AND SOURCE FILES
+########################################################################
+
+library(ggplot2)
+library(plyr)
+library(readr)
+library(data.table)
+library(dplyr)
+library(Matrix)
+library(dplyr)
+library(tidyverse)
+library(cowplot)
+
+
+```
+
+
+### 2.4. Méthodes d'analyses choisies
+
+Pour déterminer l'impact des sytèmes racinaires sur le rendement d'une culture de maïs en conditions de sécheresse, trois paramètres ont été étudiés : 
+
+le rayon de la racine primaire, 
+la longueur maximale des racines latérales, 
+La distance entre les ramifications.
+
+Ces paramètres influencent l'absorption de l'eau et, par conséquent, la biomasse produite.
+
+Les systèmes racinaires ont été modélisés avec CRootBox et MARSHAL, et les valeurs de conductance hydraulique (Krs) obtenues ont été utilisées pour ajuster le paramètre Kl dans le modèle APSIM, permettant de simuler l'évolution de la biomasse. Les valeurs de Krs et Kl ont été établies en se basant sur des études antérieures, notamment celles de Hayat et al. (2020) et Dardanelli et al. (1997). Les résultats de ces simulations ont été analysés pour comprendre l'impact des différents paramètres racinaires sur le rendement en biomasse dans des conditions environnementales difficiles.
+
+```{r}
+########################################################################
+# 2 : Définir les valeurs de Kl et krs
+########################################################################
+# Standard Krs and standard Kl data used to link models
+
+# Krs and Kl ratio
+
+kl_std = 0.088 #dardaneli et al.
+krs_std = 1.25*10^(-6)*86400 #hayat et al.
+
+```
+## 3. Résultats
+
+Par soucis de méthodologie j'ai fait tourné les analyses des différents paramêtres à étudier non pas en un coup mais en 3 sinon je n'arrivais pas à faire fonctionner APSIM. 
+
+#### 3.1 Influence du rayon de la racine primaire sur la biomasse de la culture
+
+On défini l'environnement de travail pour faciliter l'appel des différents documents et l'enregisstrement des résultats.
+```{r}
+# Load needed files
+
+setwd("/Users/theodelievre/Desktop/Unif/Master/Master 1 Q2/LBRAI2219/crootbox-marshal")
+
+# Custom functions
+source("inputs/functions/io_function.R") # CROOTBOX
+source("inputs/functions/getSUF.R") # MARSHAL
+
+
+
+
+```
+
+On défini les paramètres du modèle MARSHAL
+
+```{r}
+# MARSHAL PARAMETERS
+
+# We load the default parameter sets for the simulation
+psiCollar <- -15000
+soil <- read_csv("inputs/soil.csv", show_col_types = FALSE)
+conductivities <- read_csv("inputs/conductivities.csv", show_col_types = FALSE)
+
+```
+
+Idem ici pour CROOTBOX avec comme variable le taproot_radius
+
+```{r}
+# CROOTBOX PARAMETERS
+
+# A. We store the input parameters we want to change in vectors, so we can loop on these afterwards
+vitesse_primaire <- 5
+vitesse_secondaire <- 0.5
+simulation_time <- 3
+taproot_radius <- seq(0.02,0.20,0.02)     # Parameter of interest to be varied from 0.02 to 0.20 in increments of 0.02
+rep <- 3
+
+# B. We load the default parameter sets for the simulation
+rparam <- read_rparam(path = "inputs/crootbox_source/modelparameter/param.rparam")
+pparam <- read_pparam(path = "inputs/crootbox_source/modelparameter/param.pparam")
+
+# C. We create variables that will contain the results of our crootbox simulations
+all_rootsystems <- NULL
+n_tot_simulation <- length(taproot_radius) * rep
+n_cr_sim <- 0
+
+
+```
+
+
+On fait fonctionner le code CROOTBOX en faisant varier le rayon de la racine principale. 
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+
+# Run CROOTBOX combined with MARSHAL
+capture.output({
+  for(a1 in taproot_radius){
+    for(i in c(1:rep)){
+      try({
+        # Code qui génère des messages
+        n_cr_sim <- n_cr_sim + 1
+        print(paste0(n_cr_sim, " / ", n_tot_simulation, " crootbox sims"))
+        print(paste0("rootsystem_",a1))
+
+        # Modifier les paramètres
+
+        rparam$val1[rparam$name == "Taproot" & rparam$param == "a"] <- a1
+        rparam$val1[rparam$name == "Taproot" & rparam$param == "r"] <- vitesse_primaire
+        rparam$val1[rparam$type == 2 & rparam$param == "r"] <- vitesse_secondaire
+        pparam$val1[pparam$param == "simtime"] <- simulation_time
+
+        # Mettre à jour les fichiers de texte d'entrée
+        write_rparam(rparam, "inputs/param.rparam")
+        write_pparam(pparam, "inputs/param.pparam")
+
+        # Exécuter crootbox
+        system("inputs2/crootbox.out") # Exécuter crootbox pour mac
+
+        # Charger les données simulées dans R pour les traiter et les stocker pour une utilisation ultérieure
+        current_rootsystem <- fread("outputs/current_rootsystem.txt", header = TRUE)
+
+        current_rootsystem %>%
+          ggplot() +
+          theme_classic() +
+          geom_segment(aes(x = x1, y = z1, xend = x2, yend = z2), alpha = 0.9) +
+          coord_fixed()
+        sum(current_rootsystem$length)
+
+        # Exécuter MARSHAL
+        hydraulics <- getSUF(current_rootsystem, conductivities, soil, psiCollar)
+
+        # Mapper les résultats à l'échelle du segment sur le système racinaire
+        hydraulic_archi <- hydraulics$root_system
+        hydraulic_archi$suf <- hydraulics$suf[,1]
+        hydraulic_archi$kr <- hydraulics$kr[,1]
+        hydraulic_archi$kx <- hydraulics$kx[,1]
+        hydraulic_archi$jr <- hydraulics$jr[,1]
+        hydraulic_archi$jxl <- hydraulics$jxl[,1]
+        hydraulic_archi$krs <- hydraulics$krs
+        hydraulic_archi$tact <- hydraulics$tact
+
+        # Enrichir les données de simulation du système racinaire avec des métadonnées
+        hydraulic_archi <- hydraulic_archi %>%
+          mutate(sum_length = sum(length),
+                 taproot_radius = a1,
+                 rep = i,
+                 simulation_id = n_cr_sim)
+
+        # Stocker la simulation du système racinaire avec un nom unique
+        write_csv(current_rootsystem,
+                  paste0("outputs/rootsystems/rootsystem_",a1,"_",i,".csv"))
+
+        # Stocker toutes les données des systèmes racinaires dans le même grand cadre de données
+        all_rootsystems <- rbind(all_rootsystems, hydraulic_archi)
+
+        # Stocker la simulation du système racinaire avec un nom unique
+        write_csv(current_rootsystem,
+                  paste0("outputs/rootsystems/rootsystem_",a1,".csv"))
+      })
+    }
+  }
+}, file = '/dev/null')
+
+```
+```{r}
+# Print resulting dataframe
+str(all_rootsystems)
+```
+
+
+On affiche l'architecture racinaire en fonction du rayon. 
+
+```{r}
+# Print the roots simulations
+all_rootsystems %>%
+  ggplot() +
+  theme_classic() +
+  geom_segment(aes(x = x1, y = z1, xend = x2, yend = z2), alpha=0.9) +
+  coord_fixed() +
+  labs(title = "Simulations des systèmes racinaires en fonction du rayon de la racine primaire") +
+  facet_grid(.~taproot_radius)
+
+```
+
+Ici on affiche les valeurs du Krs varie par rapport au rayon de la racine. 
+```{r}
+#Plot the taproot_radius influence on Krs
+all_rootsystems %>%
+  ggplot(aes(taproot_radius ,krs, colour = krs)) +
+  labs(title = "Influence du rayon de la racine primaire sur la conductance totale du système racinaire") +
+  geom_point()
+```
+
+On observe une augmentation constante entre le krs et le taproot_radius, les deux paramètres semblent être positivement corrélés. 
+
+
+Ci-dessous on va faire le lien entre le rayon de la racine principale et les paramètres hydrauliques, la conductivité radiale (krs) et la conductivité ajustée (kl_radius). On nettoye également les données pour ne conserver que les combinaisons uniques, ça permet d'obtenir une correspondance directe entre ces variables. 
+```{r}
+# Link between roots and crop models for taproot radius
+
+correspondance_full <- data.frame(radius = c(all_rootsystems$taproot_radius),
+                    krs_radius = c(all_rootsystems$krs),
+                    kl_radius = c(kl_std*(all_rootsystems$krs/krs_std)),
+                    stringsAsFactors = FALSE)
+
+# Explore the correspondance dataset:
+head(correspondance_full)
+
+correspondance <- unique(correspondance_full)
+
+print(correspondance)
+```
+
+On prépare la modélisation de culture via APSIM en définissant l'environnement de travail et les fichiers nécéssaire à importer. 
+```{r}
+# Load needed files
+
+setwd("/Users/theodelievre/Desktop/Unif/Master/Master 1 Q2/LBRAI2219/crootbox-marshal/inputs/apsim")
+
+meteo <- read_csv("meteo.csv",show_col_types = FALSE ) %>%
+  mutate(svpmax = 6.1078*exp(17.269*tmax/(237.3+tmax))*0.1) %>%
+  mutate(svpmin = 6.1078*exp(17.269*tmin/(237.3+tmin))*0.1) %>%
+  mutate(VPDcalc = 0.75*(svpmax-svpmin)*10)
+
+plant <- read_csv("plants.csv", show_col_types = FALSE)
+
+soils <- read_csv("soils.csv", show_col_types = FALSE)
+
+```
+
+
+Création d'un dataframe avec les paramètres identifiés pour le cas de la belgique durant un été en période de sécheresse. 
+
+```{r}
+# Create needed dataframe
+
+temp <- plant %>% filter(plant == "maize")
+tempsoil <- soils %>% filter(type == "top_dry")  #Using a top_dry soil to be in belgian drought conditions
+
+input <- data.frame(RUE = temp$value[temp$param == "RUE"],
+                    RGR = temp$value[temp$param == "RGR"],
+                    kl1 = temp$value[temp$param == "kl1"],
+                    kl2 = temp$value[temp$param == "kl2"],
+                    kl3 = temp$value[temp$param == "kl3"],
+                    initASW1 = tempsoil$ASW1,
+                    initASW2 = tempsoil$ASW2,
+                    initASW3 = tempsoil$ASW3)
+
+```
+On prépare les paramètres pour APSIM. 
+
+```{r}
+# APSIM PARAMETERS
+
+RUE <- input$RUE
+RootGrowthRate <- input$RGR #20
+TEc <- 9
+PotentialDLAI <- 0.1
+k <- 0.45
+InitialLAI <- 1.5
+InitialBiomass <- 45
+VPDfrac <- 1
+
+tinit <- 30
+tmax <- 60
+
+meteo <- meteo %>% filter(type == "warm")        # We use warm meteo to be in belgian drought conditions
+
+soil <- data.frame(param = rep(c("depth", "ll", "ul", "sw", "kl"), 3),
+                   layer = rep(c(1:3), each=5),
+                   value = rep(c(300, 50, 100, 100, 0.06), 3)
+)
+
+depth1 <- 300
+depth2 <- 300
+depth3 <- 300
+totDepth <- depth1 + depth2 + depth3
+
+print(correspondance['radius'])
+
+sd1 <- 0.5
+sd2 <- 1.5
+sd3 <- 4
+
+```
+Comme expliqué dans la méthologie en 2.4 on fait lier les données trouvées pour le krs via marshal avec les données de APSIM pour voir l'évolution de la biomasse en fonction des valeurs liées à la variable d'intéret ici le rayon de la racine principale. Ici j'ai utilisé le code partagé sur le Github.
+
+```{r}
+
+#########################################################
+############# LINK BETWEEN MARSHAL AND APSIM ############
+##################### BY KRS AND KL #####################
+#########################################################
+# Run APSIM with correspondance to MARSHAL&CROOTBOX simulations
+
+# Initialise dataframe
+for (line in 1:(nrow(correspondance))){
+
+  radius <- correspondance$radius[line]
+  krs <- correspondance$krs_radius[line]
+  kl1 <- correspondance$kl_radius[line]
+  kl2 <- kl1
+  kl3 <- kl1
+
+  sim_one <- data.frame(radius = c(radius), rep = c((line-1) %% 3 + 1), krs = c(krs), das = c(tinit)) %>%
+    mutate(root_depth = ifelse(das * RootGrowthRate < totDepth,
+                               das * RootGrowthRate ,
+                               totDepth)) %>%
+    mutate(ASW1 = input$initASW1,
+           ASW2 = input$initASW2,
+           ASW3 = input$initASW3) %>%
+    mutate(totASW = ASW1 + ASW2 + ASW3) %>%
+
+    mutate(ps1 = ifelse(root_depth >= depth1,
+                        1 * ASW1 * kl1,
+                        (root_depth / depth1) * ASW1 * kl1)) %>%
+    mutate(ps2 = ifelse(root_depth <= depth1,
+                        0,
+                        ifelse(root_depth > depth1+depth2,
+                               1 * ASW2 * kl2,
+                               ((root_depth-depth1) / depth2) * ASW2 * kl2))) %>%
+    mutate(ps3 = ifelse(root_depth <= depth1+depth2,
+                        0,
+                        ((root_depth - depth1 - depth2)/depth3) * ASW3 * kl3)) %>%
+    mutate(potsupply = ps1 + ps2 + ps3) %>%
+    mutate(lai = InitialLAI) %>%
+    mutate(li = 1 - exp(-k*lai)) %>%
+    mutate(potdemand = meteo$Radn[meteo$DAS == das] * li * RUE /
+             (TEc / (meteo$VPDcalc[meteo$DAS == das]/10))) %>%
+    mutate(sd = potsupply / potdemand) %>%
+    mutate(leafexpeffect = ifelse( sd <= sd1,
+                                   0,
+                                   ifelse(sd > sd2,
+                                          1,
+                                          (sd - sd1)/(sd2-sd1)))) %>%
+    mutate(Dlai = leafexpeffect * PotentialDLAI) %>%
+    mutate(transpiration = min(potdemand, potsupply)) %>%
+    mutate(SWaterUse = transpiration) %>%
+    mutate(BioWater = potsupply * TEc / (meteo$VPDcalc[meteo$DAS == das]/10)) %>%
+    mutate(BioLight = meteo$Radn[meteo$DAS == das] * li * RUE) %>%
+    mutate(DBiomass = ifelse(sd > 1, BioLight, BioWater)) %>%
+    mutate(biomass = DBiomass + InitialBiomass)
+
+
+  # Update dataframe
+
+  rewater <- 0
+  for(i in c((tinit+1):(tmax))){
+
+      tempP <- sim_one[sim_one$das == i-1,]
+      temp <- tempP %>% mutate(das = i)
+
+      temp$ASW1 <- tempP$ASW1-(tempP$ps1/tempP$potsupply)*tempP$transpiration
+      temp$ASW2 <- tempP$ASW2-(tempP$ps2/tempP$potsupply)*tempP$transpiration
+      temp$ASW3 <- tempP$ASW3-(tempP$ps3/tempP$potsupply)*tempP$transpiration
+
+      if(i == rewater){
+        temp$ASW1 <- soils$ASW1[soils$type == "top_dry"]
+        temp$ASW2 <- soils$ASW2[soils$type == "top_dry"]
+        temp$ASW3 <- soils$ASW3[soils$type == "top_dry"]
+        rewater = rewater + input$rewater
+        print(paste0("rewater ",rewater))
+      }
+
+      temp <- temp %>%
+        mutate(root_depth = ifelse(das * RootGrowthRate < totDepth,
+                                   das * RootGrowthRate ,
+                                   totDepth)) %>%
+        mutate(totASW = ASW1 + ASW2 + ASW3) %>%
+        mutate(ps1 = ifelse(root_depth >= depth1,
+                            1 * ASW1 * kl1,
+                            (root_depth / depth1) * ASW1 * kl1)) %>%
+        mutate(ps2 = ifelse(root_depth <= depth1,
+                            0,
+                            ifelse(root_depth > depth1+depth2,
+                                   1 * ASW2 * kl2,
+                                   ((root_depth-depth1) / depth2) * ASW2 * kl2))) %>%
+        mutate(ps3 = ifelse(root_depth <= depth1+depth2,
+                            0,
+                            ((root_depth - depth1 - depth2)/depth3) * ASW3 * kl3)) %>%
+        mutate(potsupply = ps1 + ps2 + ps3) %>%
+        mutate(lai = tempP$lai + tempP$Dlai) %>%
+        mutate(li = 1 - exp(-k*lai)) %>%
+        mutate(potdemand = meteo$Radn[meteo$DAS == das] * li * RUE /
+                 (TEc / (meteo$VPDcalc[meteo$DAS == das]/10))) %>%
+        mutate(sd = potsupply / potdemand) %>%
+        mutate(leafexpeffect = ifelse( sd <= sd1,
+                                       0,
+                                       ifelse(sd > sd2,
+                                              1,
+                                              (sd - sd1)/(sd2-sd1)))) %>%
+        mutate(Dlai = leafexpeffect * PotentialDLAI) %>%
+        mutate(transpiration = min(potdemand, potsupply)) %>%
+        mutate(SWaterUse = transpiration + tempP$SWaterUse) %>%
+        mutate(BioWater = potsupply * TEc / (meteo$VPDcalc[meteo$DAS == das]/10)) %>%
+        mutate(BioLight = meteo$Radn[meteo$DAS == das] * li * RUE) %>%
+        mutate(DBiomass = ifelse(sd > 1, BioLight, BioWater)) %>%
+        mutate(biomass = DBiomass + tempP$biomass)
+
+      sim_one <- rbind(sim_one, temp)
+      #print(line)
+    }
+    if (line == 1) {
+      sim_all <- data.frame(sim_one)
+    }
+    else {
+      sim_all <- rbind(sim_all, sim_one)
+    }
+}
+
+head(sim_all)
+```
+
+On affiche les résultats pour l'évolution de la biomasse, la disponibilité en eau et l'utilisation de l'eau de la culture pour les jours de 30 à 60. 
+
+```{r}
+# Simulations results
+
+# Plot of Biomass, Available Soil Water and Water Use for each rootsystems (for different taproot radius and for each stochastic repetition)
+sim_all %>%
+  ggplot(aes(x= das)) +
+  geom_point(aes(y = biomass, colour = 'Biomass')) +
+  geom_point(aes(y = totASW, colour = 'Total Available Soil Water')) +
+  geom_point(aes(y = SWaterUse, colour = 'Water Use'))+
+  labs(title = "Evolution of the Maize crop for each simulation of rootsystems (taproot radius and stochastic repetition)") +
+  scale_colour_manual(name = 'Légende',
+                      values = c('Biomass' = 'red', 'Total Available Soil Water'='green', 'Water Use'='blue'))+
+ facet_grid(rep ~ radius)
+```
+
+Ici on affiche l'influence du rayon sur la courbe de la biomasse.
+```{r}
+# Taproot radius influence on biomass
+
+sim_all %>%
+  ggplot(aes(x= das)) +
+  geom_line(aes(y = biomass, group = rep)) +
+  labs(title = "Maize crop biomass production evolution influenced by rootsystem taproot radius") +
+  facet_wrap (.~radius)
+```
+
+On peut voir sur les deux dernières séries de graphes quela biomasse à tendance à évoluer positivement dans le temps et de manière plus importante pour un rayon de racine primaine plus grand. Ce qui implique que ce paramètre soit important pour le croissance et le développement des cultures. 
+
+### 3.2. Influence de la longueu des racines latérales sur la biomasse de la culture
+
+On suit ici la même méthodologie qu'au point 3.1. 
+
+```{r}
+# Load needed files
+
+setwd("/Users/theodelievre/Desktop/Unif/Master/Master 1 Q2/LBRAI2219/crootbox-marshal")
+
+# Custom functions
+source("inputs/functions/io_function.R") # CROOTBOX
+source("inputs/functions/getSUF.R") # MARSHAL
+
+
+
+```
+
+On définit les paramètres de MARSHAL et CROOTBOX
+```{r}
+# MARSHAL PARAMETERS
+
+# We load the default parameter sets for the simulation
+psiCollar <- -15000
+soil <- read_csv("inputs/soil.csv",show_col_types = FALSE)
+conductivities <- read_csv("inputs/conductivities.csv", show_col_types = FALSE)
+
+
+```
+```{r}
+# CROOTBOX PARAMETERS
+
+# A. We store the input parameters we want to change in vectors, so we can loop on these afterwards
+vitesse_primaire <- 4
+vitesse_secondaire <- 0.5
+simulation_time <- 30
+max_length_long_lat <- seq(3, 30, 3)     # Parameter d'interet qui varie de 3 à 30 par pas de 3
+rep <- 3
+
+# B. We load the default parameter sets for the simulation
+rparam <- read_rparam(path = "inputs/crootbox_source/modelparameter/param.rparam")
+pparam <- read_pparam(path = "inputs/crootbox_source/modelparameter/param.pparam")
+
+# C. We create variables that will contain the results of our crootbox simulations
+all_rootsystems <- NULL
+n_tot_simulation <- length(max_length_long_lat) * rep
+n_cr_sim <- 0
+
+
+
+
+```
+
+On lance CROOTBOX pour modéliser les racines en faisant varier la longueur maximale des racines latérales. 
+```{r}
+# Run CROOTBOX combined with MARSHAL
+
+# We loop over the input parameters vectors (see cell above)
+capture.output({
+  for(lmax3 in max_length_long_lat){
+    for(i in c(1:rep)){
+      try({
+        n_cr_sim <- n_cr_sim + 1
+        print(paste0(n_cr_sim, " / ", n_tot_simulation, " crootbox sims"))
+        print(paste0("rootsystem_",a1))
+
+        # Modifier les paramètres
+        rparam$val1[rparam$name == "LongLateral" & rparam$param == "lmax"] <- lmax3
+        rparam$val1[rparam$name == "Taproot" & rparam$param == "r"] <- vitesse_primaire
+        rparam$val1[rparam$type == 2 & rparam$param == "r"] <- vitesse_secondaire
+        pparam$val1[pparam$param == "simtime"] <- simulation_time
+
+        # Mettre à jour les fichiers de texte d'entrée
+        write_rparam(rparam, "inputs/param.rparam")
+        write_pparam(pparam, "inputs/param.pparam")
+
+        # Exécuter crootbox
+        system("inputs2/crootbox.out")
+
+        # Charger les données simulées dans R pour les traiter et les stocker
+        current_rootsystem <- fread("outputs/current_rootsystem.txt", header = TRUE)
+
+        current_rootsystem %>%
+          ggplot() +
+          theme_classic() +
+          geom_segment(aes(x = x1, y = z1, xend = x2, yend = z2), alpha = 0.9) +
+          coord_fixed()
+        sum(current_rootsystem$length)
+
+        # Exécuter MARSHAL
+        hydraulics <- getSUF(current_rootsystem, conductivities, soil, psiCollar)
+
+        # Mapper les résultats à l'échelle du segment sur le système racinaire
+        hydraulic_archi <- hydraulics$root_system
+        hydraulic_archi$suf <- hydraulics$suf[,1]
+        hydraulic_archi$kr <- hydraulics$kr[,1]
+        hydraulic_archi$kx <- hydraulics$kx[,1]
+        hydraulic_archi$jr <- hydraulics$jr[,1]
+        hydraulic_archi$jxl <- hydraulics$jxl[,1]
+        hydraulic_archi$krs <- hydraulics$krs
+        hydraulic_archi$tact <- hydraulics$tact
+
+        # Enrichir les données de simulation avec des métadonnées
+        hydraulic_archi <- hydraulic_archi %>%
+          mutate(sum_length = sum(length),
+                 max_length_long_lat = lmax3,
+                 rep = i,
+                 simulation_id = n_cr_sim)
+
+        # Stocker la simulation du système racinaire avec un nom unique
+        write_csv(current_rootsystem,
+                  paste0("outputs/rootsystems/rootsystem_",lmax3,"_",i,".csv"))
+
+        # Stocker toutes les données des systèmes racinaires dans le même cadre de données
+        all_rootsystems <- rbind(all_rootsystems, hydraulic_archi)
+        write_csv(current_rootsystem,
+                  paste0("outputs/rootsystems/rootsystem_",lmax3,".csv"))
+      })
+    }
+  }
+}, file = '/dev/null')
+
+
+```
+
+On affiche les simulations. 
+```{r}
+# Print the roots simulations
+
+all_rootsystems %>%
+  ggplot() +
+  theme_classic() +
+  geom_segment(aes(x = x1, y = z1, xend = x2, yend = z2), alpha=0.9) +
+  coord_fixed() +
+  labs(title = "Systèmes racinaires en fonction de la longueur maximale des racines latérales") +
+  facet_wrap(.~max_length_long_lat)
+
+
+```
+
+Et l'évolution de krs
+```{r}
+#Plot the taproot_radius influence on Krs
+
+all_rootsystems %>%
+  ggplot(aes(max_length_long_lat ,krs, colour = krs)) +
+  labs(title = "Influence de la longueur maximale des racines latérales sur la conductance totale du système racinaire") +
+  geom_point()
+
+
+```
+
+On observe une distribution des valeurs en krs en fonction de la longueur maximale des racines latérales assez constante. On observe également une série de valeurs beaucoup plus faible que la moyenne. 
+
+
+
+Ici on va faire le lien entre la longueur maximale des racines latérales  et les paramètres hydrauliques, la conductivité radiale (krs) et la conductivité ajustée (kl_radius). On nettoye également les données pour ne conserver que les combinaisons uniques, ça permet d'obtenir une correspondance directe entre ces variables. 
+```{r}
+# Link between roots and crop models for maximal length longlateral roots
+
+correspondance_full_length <- data.frame(max_length = c(all_rootsystems$max_length_long_lat),
+                                  krs_length = c(all_rootsystems$krs),
+                                  kl_length = c(kl_std*(all_rootsystems$krs/krs_std)),
+                                  RGR = c(all_rootsystems$sum_length/simulation_time),
+                                  stringsAsFactors = FALSE)
+
+# Explore the correspondance dataset:
+head(correspondance_full_length)
+
+correspondance_length <- unique(correspondance_full_length)
+
+correspondance_length_Krs <- correspondance_length[,1:3]
+
+print(correspondance_length_Krs)
+
+
+```
+
+
+On prépare la simulation via APSIM en chargeant l'environnement de travail et les fichiers nécéssaires.
+```{r}
+# Load needed files
+
+setwd("/Users/theodelievre/Desktop/Unif/Master/Master 1 Q2/LBRAI2219/crootbox-marshal/inputs/apsim")
+
+meteo <- read_csv("meteo.csv") %>%
+  mutate(svpmax = 6.1078*exp(17.269*tmax/(237.3+tmax))*0.1) %>%
+  mutate(svpmin = 6.1078*exp(17.269*tmin/(237.3+tmin))*0.1) %>%
+  mutate(VPDcalc = 0.75*(svpmax-svpmin)*10)
+
+plant <- read_csv("plants.csv")
+
+soils <- read_csv("soils.csv")
+
+
+```
+
+On va créer un dataframe pour la simulation des cultures avec APSIM
+
+```{r}
+# Create needed dataframe
+
+temp <- plant %>% filter(plant == "maize")
+tempsoil <- soils %>% filter(type == "top_dry")  #Using a top_dry soil to be in belgian drought conditions
+
+input <- data.frame(RUE = temp$value[temp$param == "RUE"],
+                    RGR = temp$value[temp$param == "RGR"],
+                    kl1 = temp$value[temp$param == "kl1"],
+                    kl2 = temp$value[temp$param == "kl2"],
+                    kl3 = temp$value[temp$param == "kl3"],
+                    initASW1 = tempsoil$ASW1,
+                    initASW2 = tempsoil$ASW2,
+                    initASW3 = tempsoil$ASW3)
+
+
+
+```
+
+On va définir les paramêtres utilisés dans APSIM
+```{r}
+# APSIM PARAMETERS
+
+RUE <- input$RUE
+RootGrowthRate <- input$RGR #20
+TEc <- 9
+PotentialDLAI <- 0.1
+k <- 0.45
+InitialLAI <- 1.5
+InitialBiomass <- 45
+VPDfrac <- 1
+
+tinit <- 30
+tmax <- 60 # Modelization duration from day 30 to 60
+
+meteo <- meteo %>% filter(type == "warm")        # We use warm meteo to be in belgian drought conditions
+
+soil <- data.frame(param = rep(c("depth", "ll", "ul", "sw", "kl"), 3),
+                   layer = rep(c(1:3), each=5),
+                   value = rep(c(300, 50, 100, 100, 0.06), 3)
+)
+
+depth1 <- 300
+depth2 <- 300
+depth3 <- 300
+totDepth <- depth1 + depth2 + depth3
+
+
+sd1 <- 0.5
+sd2 <- 1.5
+sd3 <- 4
+
+
+```
+
+Comme expliqué dans la méthologie en 2.4 on fait lier les données trouvées pour le krs via marshal avec les données de APSIM pour voir l'évolution de la biomasse en fonction des valeurs liées à la variable d'intéret ici la longueur maximale des racines latérales . Ici j'ai utilisé le code partagé sur le Github.
+
+```{r}
+
+#########################################################
+############# LINK BETWEEN MARSHAL AND APSIM ############
+##################### BY KRS AND KL #####################
+#########################################################
+# Run APSIM with correspondance to MARSHAL&CROOTBOX simulations
+
+# Initialise dataframe
+for (line in 1:(nrow(correspondance_length_Krs))){
+
+  max_length <- correspondance_length_Krs$max_length[line]
+  krs <- correspondance_length_Krs$krs_length[line]
+  kl1 <- correspondance_length_Krs$kl_length[line]
+  kl2 <- kl1
+  kl3 <- kl1
+
+
+sim_one_length_krs <- data.frame(max_length = c(max_length), rep = c((line-1) %% 3 + 1), krs = c(krs), das = c(tinit)) %>%
+    mutate(root_depth = ifelse(das * RootGrowthRate < totDepth,
+                               das * RootGrowthRate ,
+                               totDepth)) %>%
+    mutate(ASW1 = input$initASW1,
+           ASW2 = input$initASW2,
+           ASW3 = input$initASW3) %>%
+    mutate(totASW = ASW1 + ASW2 + ASW3) %>%
+
+    mutate(ps1 = ifelse(root_depth >= depth1,
+                        1 * ASW1 * kl1,
+                        (root_depth / depth1) * ASW1 * kl1)) %>%
+    mutate(ps2 = ifelse(root_depth <= depth1,
+                        0,
+                        ifelse(root_depth > depth1+depth2,
+                               1 * ASW2 * kl2,
+                               ((root_depth-depth1) / depth2) * ASW2 * kl2))) %>%
+    mutate(ps3 = ifelse(root_depth <= depth1+depth2,
+                        0,
+                        ((root_depth - depth1 - depth2)/depth3) * ASW3 * kl3)) %>%
+    mutate(potsupply = ps1 + ps2 + ps3) %>%
+    mutate(lai = InitialLAI) %>%
+    mutate(li = 1 - exp(-k*lai)) %>%
+    mutate(potdemand = meteo$Radn[meteo$DAS == das] * li * RUE /
+             (TEc / (meteo$VPDcalc[meteo$DAS == das]/10))) %>%
+    mutate(sd = potsupply / potdemand) %>%
+    mutate(leafexpeffect = ifelse( sd <= sd1,
+                                   0,
+                                   ifelse(sd > sd2,
+                                          1,
+                                          (sd - sd1)/(sd2-sd1)))) %>%
+    mutate(Dlai = leafexpeffect * PotentialDLAI) %>%
+    mutate(transpiration = min(potdemand, potsupply)) %>%
+    mutate(SWaterUse = transpiration) %>%
+    mutate(BioWater = potsupply * TEc / (meteo$VPDcalc[meteo$DAS == das]/10)) %>%
+    mutate(BioLight = meteo$Radn[meteo$DAS == das] * li * RUE) %>%
+    mutate(DBiomass = ifelse(sd > 1, BioLight, BioWater)) %>%
+    mutate(biomass = DBiomass + InitialBiomass)
+
+
+  # Update dataframe
+
+  rewater <- 0
+  for(i in c((tinit+1):(tmax))){
+
+    tempP <- sim_one_length_krs[sim_one_length_krs$das == i-1,]
+    temp <- tempP %>% mutate(das = i)
+
+    temp$ASW1 <- tempP$ASW1-(tempP$ps1/tempP$potsupply)*tempP$transpiration
+    temp$ASW2 <- tempP$ASW2-(tempP$ps2/tempP$potsupply)*tempP$transpiration
+    temp$ASW3 <- tempP$ASW3-(tempP$ps3/tempP$potsupply)*tempP$transpiration
+
+    if(i == rewater){
+      temp$ASW1 <- soils$ASW1[soils$type == "top_dry"]
+      temp$ASW2 <- soils$ASW2[soils$type == "top_dry"]
+      temp$ASW3 <- soils$ASW3[soils$type == "top_dry"]
+      rewater = rewater + input$rewater
+      print(paste0("rewater ",rewater))
+    }
+
+    temp <- temp %>%
+      mutate(root_depth = ifelse(das * RootGrowthRate < totDepth,
+                                 das * RootGrowthRate ,
+                                 totDepth)) %>%
+      mutate(totASW = ASW1 + ASW2 + ASW3) %>%
+      mutate(ps1 = ifelse(root_depth >= depth1,
+                          1 * ASW1 * kl1,
+                          (root_depth / depth1) * ASW1 * kl1)) %>%
+      mutate(ps2 = ifelse(root_depth <= depth1,
+                          0,
+                          ifelse(root_depth > depth1+depth2,
+                                 1 * ASW2 * kl2,
+                                 ((root_depth-depth1) / depth2) * ASW2 * kl2))) %>%
+      mutate(ps3 = ifelse(root_depth <= depth1+depth2,
+                          0,
+                          ((root_depth - depth1 - depth2)/depth3) * ASW3 * kl3)) %>%
+      mutate(potsupply = ps1 + ps2 + ps3) %>%
+      mutate(lai = tempP$lai + tempP$Dlai) %>%
+      mutate(li = 1 - exp(-k*lai)) %>%
+      mutate(potdemand = meteo$Radn[meteo$DAS == das] * li * RUE /
+               (TEc / (meteo$VPDcalc[meteo$DAS == das]/10))) %>%
+      mutate(sd = potsupply / potdemand) %>%
+      mutate(leafexpeffect = ifelse( sd <= sd1,
+                                     0,
+                                     ifelse(sd > sd2,
+                                            1,
+                                            (sd - sd1)/(sd2-sd1)))) %>%
+      mutate(Dlai = leafexpeffect * PotentialDLAI) %>%
+      mutate(transpiration = min(potdemand, potsupply)) %>%
+      mutate(SWaterUse = transpiration + tempP$SWaterUse) %>%
+      mutate(BioWater = potsupply * TEc / (meteo$VPDcalc[meteo$DAS == das]/10)) %>%
+      mutate(BioLight = meteo$Radn[meteo$DAS == das] * li * RUE) %>%
+      mutate(DBiomass = ifelse(sd > 1, BioLight, BioWater)) %>%
+      mutate(biomass = DBiomass + tempP$biomass)
+
+    sim_one_length_krs <- rbind(sim_one_length_krs, temp)
+    #print(line)
+  }
+  if (line == 1) {
+    sim_all_length_krs <- data.frame(sim_one_length_krs)
+  }
+  else {
+    sim_all_length_krs <- rbind(sim_all_length_krs, sim_one_length_krs)
+  }
+}
+
+head(sim_all_length_krs)
+
+```
+
+```{r}
+# Simulations results
+
+# Plot of Biomass, Available Soil Water and Water Use for each rootsystems (for different max_length longlateral roots
+#and for each stochastic repetition)
+
+sim_all_length_krs %>%
+  ggplot(aes(x= das)) +
+  geom_point(aes(y = biomass, colour = 'Biomass')) +
+  geom_point(aes(y = totASW, colour = 'Total Available Soil Water')) +
+  geom_point(aes(y = SWaterUse, colour = 'Water Use'))+
+  labs(title = "Evolution of the Maize crop for each simulation of rootsystems (max_length longlateral root and stochastic repetition)") +
+  scale_colour_manual(name = 'Légende',
+                      values = c('Biomass' = 'red', 'Total Available Soil Water'='green', 'Water Use'='blue'))+
+  facet_grid(rep ~ max_length)
+
+
+```
+```{r}
+# Maximum length of longlateral roots influence on biomass
+# Each line correspond to one stochastic repetition
+sim_all_length_krs %>%
+  ggplot(aes(x= das)) +
+  geom_line(aes(y = biomass, group = rep)) +
+  labs(title = "Maize crop biomass production evolution influenced by rootsystem length longlateral roots") +
+  facet_wrap (.~ max_length)
+
+
+```
+
+Dans les deux dernières séries de graphes on observe bien une augmentation de la biomasse en fonction du temps mais dans le cas de l'influence de la longueur des racines latérales on ne voit pas de changement d'une longueur à l'autre. La pente reste la même pour les différentes longueures. 
+
+### 3.3. Influence de la distance entre les ramifications sur la biomasse produite
+
+
+On suit ici la même méthodologie qu'au point 3.1. 
+
+```{r}
+# Load needed files
+
+setwd("/Users/theodelievre/Desktop/Unif/Master/Master 1 Q2/LBRAI2219/crootbox-marshal")
+
+# Custom functions
+source("inputs/functions/io_function.R") # CROOTBOX
+source("inputs/functions/getSUF.R") # MARSHAL
+
+
+
+```
+On définit les paramètres de MARSHAL et CROOTBOX
+
+```{r}
+# MARSHAL PARAMETERS
+
+# We load the default parameter sets for the simulation
+psiCollar <- -15000
+soil <- read_csv("inputs/soil.csv")
+conductivities <- read_csv("inputs/conductivities.csv")
+
+
+```
+```{r}
+# CROOTBOX PARAMETERS
+
+# A. We store the input parameters we want to change in vectors, so we can loop on these afterwards
+vitesse_primaire <- 4
+vitesse_secondaire <- 0.5
+simulation_time <- 30
+dist_ram <- seq(0.1,1,0.1)     # Parameter of interest to be varied from 0.1 to 1 in increments of 0.01
+rep <- 3
+
+# B. We load the default parameter sets for the simulation
+rparam <- read_rparam(path = "inputs/crootbox_source/modelparameter/param.rparam")
+pparam <- read_pparam(path = "inputs/crootbox_source/modelparameter/param.pparam")
+
+# C. We create variables that will contain the results of our crootbox simulations
+all_rootsystems <- NULL
+n_tot_simulation <- length(dist_ram) * rep
+n_cr_sim <- 0
+
+
+```
+
+
+On lance CROOTBOX pour modéliser les racines en faisant varier la distance entre les ramifications. 
+
+
+```{r}
+# Run CROOTBOX combined with MARSHAL
+
+capture.output({
+  for(ln1 in dist_ram){
+    for(i in c(1:rep)){
+      try({
+        n_cr_sim <- n_cr_sim + 1
+        print(paste0(n_cr_sim, " / ", n_tot_simulation, " crootbox sims"))
+        print(paste0("rootsystem_",ln1))
+
+        # Modifier les paramètres
+        rparam$val1[rparam$type == 1 & rparam$param == "ln"] <- ln1
+        rparam$val1[rparam$name == "Taproot" & rparam$param == "r"] <- vitesse_primaire
+        rparam$val1[rparam$type == 2 & rparam$param == "r"] <- vitesse_secondaire
+        pparam$val1[pparam$param == "simtime"] <- simulation_time
+
+        # Mettre à jour les fichiers de texte d'entrée
+        write_rparam(rparam, "inputs/param.rparam")
+        write_pparam(pparam, "inputs/param.pparam")
+
+        # Exécuter crootbox
+        system("inputs2/crootbox.out")
+
+        # Charger les données simulées dans R pour les traiter et les stocker
+        current_rootsystem <- fread("outputs/current_rootsystem.txt", header = TRUE)
+
+        current_rootsystem %>%
+          ggplot() +
+          theme_classic() +
+          geom_segment(aes(x = x1, y = z1, xend = x2, yend = z2), alpha = 0.9) +
+          coord_fixed()
+        sum(current_rootsystem$length)
+
+        # Exécuter MARSHAL
+        hydraulics <- getSUF(current_rootsystem, conductivities, soil, psiCollar)
+
+        # Mapper les résultats à l'échelle du segment sur le système racinaire
+        hydraulic_archi <- hydraulics$root_system
+        hydraulic_archi$suf <- hydraulics$suf[,1]
+        hydraulic_archi$kr <- hydraulics$kr[,1]
+        hydraulic_archi$kx <- hydraulics$kx[,1]
+        hydraulic_archi$jr <- hydraulics$jr[,1]
+        hydraulic_archi$jxl <- hydraulics$jxl[,1]
+        hydraulic_archi$krs <- hydraulics$krs
+        hydraulic_archi$tact <- hydraulics$tact
+
+        # Enrichir les données de simulation avec des métadonnées
+        hydraulic_archi <- hydraulic_archi %>%
+          mutate(sum_length = sum(length),
+                 dist_ram = ln1,
+                 rep = i,
+                 simulation_id = n_cr_sim)
+
+        # Stocker la simulation du système racinaire avec un nom unique
+        write_csv(current_rootsystem,
+                  paste0("outputs/rootsystems/rootsystem_",ln1,"_",i,".csv"))
+
+        # Stocker toutes les données des systèmes racinaires dans le même cadre de données
+        all_rootsystems <- rbind(all_rootsystems, hydraulic_archi)
+        write_csv(current_rootsystem,
+                  paste0("outputs/rootsystems/rootsystem_",ln1,".csv"))
+      })
+    }
+  }
+}, file = '/dev/null')
+```
+
+On affiche les simulations.
+```{r}
+
+# Print the roots simulations
+
+all_rootsystems %>%
+  ggplot() +
+  theme_classic() +
+  geom_segment(aes(x = x1, y = z1, xend = x2, yend = z2), alpha=0.9) +
+  coord_fixed() +
+  labs(title = "Systèmes racinaires simulés en fonction de la distance entre les ramifications") +
+  facet_wrap(.~dist_ram)
+```
+
+Et l'évolution de krs.
+```{r}
+#Plot the dist_ram influence on Krs
+
+all_rootsystems %>%
+  ggplot(aes(dist_ram ,krs, colour = krs)) +
+  labs(title = "Influence de la distance entre les ramifications sur la conductance totale du système racinaire") +
+  geom_point()
+
+```
+
+On observe une distribution des valeurs de krs en fonction de la distance entre les ramificationse qui diminue avec la distance.
+
+```{r}
+
+
+# Link between roots and crop models for distance between ramifications
+
+correspondance_full_dist_ram <- data.frame(dist_ram = c(all_rootsystems$dist_ram),
+                                  krs_ram = c(all_rootsystems$krs),
+                                  kl_ram = c(kl_std*(all_rootsystems$krs/krs_std)),
+                                  stringsAsFactors = FALSE)   # Don't convert strings to factors!
+
+# Explore the correspondance dataset:
+head(correspondance_full_dist_ram)
+
+correspondance_dist_ram <- unique(correspondance_full_dist_ram)
+
+print(correspondance_dist_ram)
+
+```
+
+Ici on va faire le lien entre la distance entre les ramification et les paramètres hydrauliques, la conductivité radiale (krs) et la conductivité ajustée (kl_radius). On nettoye également les données pour ne conserver que les combinaisons uniques, ça permet d'obtenir une correspondance directe entre ces variables
+
+
+
+
+On prépare la simulation via APSIM en chargeant l'environnement de travail et les fichiers nécéssaires.
+```{r}
+# Load needed files
+
+setwd("/Users/theodelievre/Desktop/Unif/Master/Master 1 Q2/LBRAI2219/crootbox-marshal/inputs/apsim")
+
+meteo <- read_csv("meteo.csv") %>%
+  mutate(svpmax = 6.1078*exp(17.269*tmax/(237.3+tmax))*0.1) %>%
+  mutate(svpmin = 6.1078*exp(17.269*tmin/(237.3+tmin))*0.1) %>%
+  mutate(VPDcalc = 0.75*(svpmax-svpmin)*10)
+
+plant <- read_csv("plants.csv")
+
+soils <- read_csv("soils.csv")
+
+
+
+```
+On va créer un dataframe pour la simulation des cultures avec APSIM
+
+```{r}
+# Create needed dataframe
+
+temp <- plant %>% filter(plant == "maize")
+tempsoil <- soils %>% filter(type == "top_dry")  #Using a top_dry soil to be in belgian drought conditions
+
+input <- data.frame(RUE = temp$value[temp$param == "RUE"],
+                    RGR = temp$value[temp$param == "RGR"],
+                    kl1 = temp$value[temp$param == "kl1"],
+                    kl2 = temp$value[temp$param == "kl2"],
+                    kl3 = temp$value[temp$param == "kl3"],
+                    initASW1 = tempsoil$ASW1,
+                    initASW2 = tempsoil$ASW2,
+                    initASW3 = tempsoil$ASW3)
+
+
+```
+
+On va définir les paramêtres utilisés dans APSIM
+
+```{r}
+# APSIM PARAMETERS
+
+RUE <- input$RUE
+RootGrowthRate <- input$RGR #20
+TEc <- 9
+PotentialDLAI <- 0.1
+k <- 0.45
+InitialLAI <- 1.5
+InitialBiomass <- 45
+VPDfrac <- 1
+
+tinit <- 30
+tmax <- 60
+
+meteo <- meteo %>% filter(type == "warm")        # We use warm meteo to be in belgian drought conditions
+
+soil <- data.frame(param = rep(c("depth", "ll", "ul", "sw", "kl"), 3),
+                   layer = rep(c(1:3), each=5),
+                   value = rep(c(300, 50, 100, 100, 0.06), 3)
+)
+
+depth1 <- 300
+depth2 <- 300
+depth3 <- 300
+totDepth <- depth1 + depth2 + depth3
+
+
+sd1 <- 0.5
+sd2 <- 1.5
+sd3 <- 4
+
+
+```
+
+
+
+Comme expliqué dans la méthologie en 2.4 on fait lier les données trouvées pour le krs via marshal avec les données de APSIM pour voir l'évolution de la biomasse en fonction des valeurs liées à la variable d'intéret ici la distance entre les ramifications. Ici j'ai utilisé le code partagé sur le Github.
+```{r}
+# Run APSIM with correspondance to MARSHAL&CROOTBOX simulations
+
+# Initialise dataframe
+for (line in 1:(nrow(correspondance_dist_ram))){
+
+  dist_ram <- correspondance_dist_ram$dist_ram[line]
+  krs <- correspondance_dist_ram$krs_ram[line]
+  kl1 <- correspondance_dist_ram$kl_ram[line]
+  kl2 <- kl1
+  kl3 <- kl1
+
+  sim_one_dist_ram <- data.frame(dist_ram = c(dist_ram), rep = c((line-1) %% 3 + 1), krs = c(krs), das = c(tinit)) %>%
+    mutate(root_depth = ifelse(das * RootGrowthRate < totDepth,
+                               das * RootGrowthRate ,
+                               totDepth)) %>%
+    mutate(ASW1 = input$initASW1,
+           ASW2 = input$initASW2,
+           ASW3 = input$initASW3) %>%
+    mutate(totASW = ASW1 + ASW2 + ASW3) %>%
+
+    mutate(ps1 = ifelse(root_depth >= depth1,
+                        1 * ASW1 * kl1,
+                        (root_depth / depth1) * ASW1 * kl1)) %>%
+    mutate(ps2 = ifelse(root_depth <= depth1,
+                        0,
+                        ifelse(root_depth > depth1+depth2,
+                               1 * ASW2 * kl2,
+                               ((root_depth-depth1) / depth2) * ASW2 * kl2))) %>%
+    mutate(ps3 = ifelse(root_depth <= depth1+depth2,
+                        0,
+                        ((root_depth - depth1 - depth2)/depth3) * ASW3 * kl3)) %>%
+    mutate(potsupply = ps1 + ps2 + ps3) %>%
+    mutate(lai = InitialLAI) %>%
+    mutate(li = 1 - exp(-k*lai)) %>%
+    mutate(potdemand = meteo$Radn[meteo$DAS == das] * li * RUE /
+             (TEc / (meteo$VPDcalc[meteo$DAS == das]/10))) %>%
+    mutate(sd = potsupply / potdemand) %>%
+    mutate(leafexpeffect = ifelse( sd <= sd1,
+                                   0,
+                                   ifelse(sd > sd2,
+                                          1,
+                                          (sd - sd1)/(sd2-sd1)))) %>%
+    mutate(Dlai = leafexpeffect * PotentialDLAI) %>%
+    mutate(transpiration = min(potdemand, potsupply)) %>%
+    mutate(SWaterUse = transpiration) %>%
+    mutate(BioWater = potsupply * TEc / (meteo$VPDcalc[meteo$DAS == das]/10)) %>%
+    mutate(BioLight = meteo$Radn[meteo$DAS == das] * li * RUE) %>%
+    mutate(DBiomass = ifelse(sd > 1, BioLight, BioWater)) %>%
+    mutate(biomass = DBiomass + InitialBiomass)
+
+  # Update dataframe
+
+  rewater <- 0
+  for(i in c((tinit+1):(tmax))){
+
+    tempP <- sim_one_dist_ram[sim_one_dist_ram$das == i-1,]
+    temp <- tempP %>% mutate(das = i)
+
+    temp$ASW1 <- tempP$ASW1-(tempP$ps1/tempP$potsupply)*tempP$transpiration
+    temp$ASW2 <- tempP$ASW2-(tempP$ps2/tempP$potsupply)*tempP$transpiration
+    temp$ASW3 <- tempP$ASW3-(tempP$ps3/tempP$potsupply)*tempP$transpiration
+
+    if(i == rewater){
+      temp$ASW1 <- soils$ASW1[soils$type == "top_dry"]
+      temp$ASW2 <- soils$ASW2[soils$type == "top_dry"]
+      temp$ASW3 <- soils$ASW3[soils$type == "top_dry"]
+      rewater = rewater + input$rewater
+      print(paste0("rewater ",rewater))
+    }
+
+    temp <- temp %>%
+      mutate(root_depth = ifelse(das * RootGrowthRate < totDepth,
+                                 das * RootGrowthRate ,
+                                 totDepth)) %>%
+      mutate(totASW = ASW1 + ASW2 + ASW3) %>%
+      mutate(ps1 = ifelse(root_depth >= depth1,
+                          1 * ASW1 * kl1,
+                          (root_depth / depth1) * ASW1 * kl1)) %>%
+      mutate(ps2 = ifelse(root_depth <= depth1,
+                          0,
+                          ifelse(root_depth > depth1+depth2,
+                                 1 * ASW2 * kl2,
+                                 ((root_depth-depth1) / depth2) * ASW2 * kl2))) %>%
+      mutate(ps3 = ifelse(root_depth <= depth1+depth2,
+                          0,
+                          ((root_depth - depth1 - depth2)/depth3) * ASW3 * kl3)) %>%
+      mutate(potsupply = ps1 + ps2 + ps3) %>%
+      mutate(lai = tempP$lai + tempP$Dlai) %>%
+      mutate(li = 1 - exp(-k*lai)) %>%
+      mutate(potdemand = meteo$Radn[meteo$DAS == das] * li * RUE /
+               (TEc / (meteo$VPDcalc[meteo$DAS == das]/10))) %>%
+      mutate(sd = potsupply / potdemand) %>%
+      mutate(leafexpeffect = ifelse( sd <= sd1,
+                                     0,
+                                     ifelse(sd > sd2,
+                                            1,
+                                            (sd - sd1)/(sd2-sd1)))) %>%
+      mutate(Dlai = leafexpeffect * PotentialDLAI) %>%
+      mutate(transpiration = min(potdemand, potsupply)) %>%
+      mutate(SWaterUse = transpiration + tempP$SWaterUse) %>%
+      mutate(BioWater = potsupply * TEc / (meteo$VPDcalc[meteo$DAS == das]/10)) %>%
+      mutate(BioLight = meteo$Radn[meteo$DAS == das] * li * RUE) %>%
+      mutate(DBiomass = ifelse(sd > 1, BioLight, BioWater)) %>%
+      mutate(biomass = DBiomass + tempP$biomass)
+
+    sim_one_dist_ram <- rbind(sim_one_dist_ram, temp)
+    #print(line)
+  }
+  if (line == 1) {
+    sim_all_dist_ram <- data.frame(sim_one_dist_ram)
+  }
+  else {
+    sim_all_dist_ram <- rbind(sim_all_dist_ram, sim_one_dist_ram)
+  }
+}
+
+head(sim_all_dist_ram)
+
+
+```
+```{r}
+# Simulations results
+
+# Plot of Biomass, Available Soil Water and Water Use for each rootsystems (for different distance between ramifications
+#and for each stochastic repetition)
+
+sim_all_dist_ram %>%
+  ggplot(aes(x= das)) +
+  geom_point(aes(y = biomass, colour = 'Biomass')) +
+  geom_point(aes(y = totASW, colour = 'Total Available Soil Water')) +
+  geom_point(aes(y = SWaterUse, colour = 'Water Use'))+
+  labs(title = "Evolution of the Maize crop for each simulation of rootsystems (distance between ramifications and stochastic repetition)") +
+  scale_colour_manual(name = 'Légende',
+                      values = c('Biomass' = 'red', 'Total Available Soil Water'='green', 'Water Use'='blue'))+
+  facet_grid(rep ~ dist_ram)
+
+```
+```{r}
+# Maximum length of longlateral roots influence on biomass
+# Each line correspond to one stochastic repetition
+
+sim_all_dist_ram %>%
+  ggplot(aes(x= das)) +
+  geom_line(aes(y = biomass, group = rep)) +
+  labs(title = "Maize crop biomass production evolution influenced by rootsystem distance between ramifications") +
+  facet_wrap (.~dist_ram)
+
+```
+
+Dans les deux dernières séries de graphes on observe bien une augmentation de la biomasse en fonction du temps mais cette augmentation se fait de moins en moins importante au fur et à mesure que la distance entre les ramifications augmente. 
+
+## 4. Conclusion
+### Analyse de l’interaction entre rendements et racines
+
+Dans cette modélisation des systèmes racinaires du maïs, j'ai analysé l'impact de trois paramètres différents sur le rendement d'une culture. Les résultats montrent que la longueur maximale des racines secondaires n'a pas (ou peu) d'influence sur la conductivité hydraulique et, par conséquent, sur le rendement de la culture.
+
+En ce qui concerne le paramètre de la distance entre les ramifications, on observe que si cette distance augmente, la conductivité hydraulique, et donc le rendement, diminue. Cela suggère qu'il est avantageux, pour le développement optimal du maïs, de sélectionner des plants dont les racines secondaires sont relativement rapprochées.
+
+Pour ce qui est du rayon de la racine primaire, on constate que ce paramètre est positivement corrélé à l'augmentation de la biomasse et de la conductivité hydraulique. Plus la racine primaire est large, meilleur est le rendement de la culture. Il serait donc pertinent de sélectionner des plants de maïs présentant ces caractéristiques pour améliorer les rendements.
+
+### Conclusion générale
+
+En conclusion, ce travail de modélisation du système racinaire du maïs a permis, dans un premier temps, de développer une méthodologie pour analyser l'impact de certains paramètres dans un modèle de simulation de la structure racinaire (CROOTBOX et MARSHALL), afin d'utiliser ensuite ces résultats pour calculer la conductivité hydraulique et le rendement d'une culture modélisée avec un autre modèle (APSIM). Ces compétences en modélisation sont tout aussi importantes que les résultats eux-mêmes, car elles permettent une meilleure compréhension des outils de modélisation des systèmes biologiques existants.
+
+Dans un second temps, les résultats obtenus ont montré l'impact de deux paramètres, ainsi que l'absence d'impact du troisième, sur le rendement des cultures de maïs. Ces résultats orientent vers la sélection de plants de maïs ayant une racine principale à large rayon et des ramifications rapprochées. Il serait toutefois intéressant de valider ces résultats par des expériences sur le terrain afin de vérifier la solidité de nos conclusions.
+
+
+
+
+
+
+## 5. Contributions des auteurs
+> Merci à Pierre Huljev pour ses conseils et son aide lors de la modélisation des systèmes racinaires et la variation des différents paramêtres.
+> Merci également à Lison Van Asbrouck pour le partage de son code, qui a permi de liér Crootbox,Marshal et APSIM. 
+
+
+## 6. Bibliographie
+> APSIM. (2024). What is APSIM? APSIM. https://www.apsim.info/apsim-model/
+
+> Dardanelli, J. L., Bachmeier, O. A., Sereno, R., & Gil, R. (1997). Rooting depth and soil water extraction patterns of different crops in a silty loam Haplustoll. Field Crops Research, 54(1), 29‑38. https://doi.org/10.1016/S0378-4290(97)00017-8
+
+
+> Hammer, G., & Draye, X. (s. d.). Computer session : Yield prediction, simulation of the genotype  environment interaction with an Excel version of APSIM.
+
+> Hayat, F., Ahmed, M. A., Zarebanadkouki, M., Javaux, M., Cai, G., & Carminati, A. (2020). Transpiration Reduction in Maize (Zea mays L) in Response to Soil Drying. Frontiers in Plant Science, 10. https://doi.org/10.3389/fpls.2019.01695
+
+
+> Schnepf, A., Leitner, D., Landl, M., Lobet, G., Mai, T. H., Morandage, S., Sheng, C., Zörner, M., Vanderborght, J., & Vereecken, H. (2018). CRootBox : A structural–functional modelling framework for root systems. Annals of Botany, 121(5), 1033‑1053. https://doi.org/10.1093/aob/mcx221
+
